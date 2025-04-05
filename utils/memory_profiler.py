@@ -1,186 +1,90 @@
-import os
-import sys
-import time
-import functools
+"""
+Memory profiling for Bird Sort Game
+"""
+
 import tracemalloc
-from contextlib import contextmanager
+import linecache
+import os
 
 class MemoryProfiler:
-    """
-    Memory profiler for measuring memory usage.
-    
-    Can be used as a context manager or standalone.
-    
-    Example:
-        # As a context manager
-        with MemoryProfiler() as profiler:
-            # Code to profile
-            result = solve_puzzle()
-        print(f"Peak memory usage: {profiler.peak_usage_mb:.2f} MB")
-        
-        # As a standalone profiler
-        profiler = MemoryProfiler()
-        profiler.start()
-        # Code to profile
-        result = solve_puzzle()
-        profiler.stop()
-        print(f"Peak memory usage: {profiler.peak_usage_mb:.2f} MB")
-    """
-    
-    def __init__(self, name=None):
-        """
-        Initialize a new MemoryProfiler.
-        
-        Args:
-            name: Optional name for the profiler
-        """
-        self.name = name
-        self.start_snapshot = None
-        self.peak_snapshot = None
-        self.current_snapshot = None
-        self.peak_usage = 0
+    """Track memory usage during algorithm execution"""
+    def __init__(self):
+        self.tracking = False
         
     def start(self):
-        """Start the memory profiler"""
+        """Start tracking memory usage"""
         tracemalloc.start()
-        self.start_snapshot = tracemalloc.take_snapshot()
-        self.peak_usage = 0
-        return self
+        self.tracking = True
         
     def stop(self):
-        """Stop the memory profiler"""
-        self.current_snapshot = tracemalloc.take_snapshot()
-        tracemalloc.stop()
-        return self.peak_usage
-        
-    def snapshot(self):
-        """Take a memory snapshot"""
-        if not tracemalloc.is_tracing():
-            return None
+        """Stop tracking memory usage"""
+        if self.tracking:
+            tracemalloc.stop()
+            self.tracking = False
             
-        snapshot = tracemalloc.take_snapshot()
-        current_usage = sum(stat.size for stat in snapshot.statistics('filename'))
+    def get_current_usage(self):
+        """
+        Get current memory usage.
         
-        if current_usage > self.peak_usage:
-            self.peak_usage = current_usage
-            self.peak_snapshot = snapshot
+        Returns:
+            A tuple of (current, peak) memory usage in bytes
+        """
+        if self.tracking:
+            current, peak = tracemalloc.get_traced_memory()
+            return current, peak
+        return 0, 0
+        
+    def get_snapshot(self):
+        """
+        Get a snapshot of memory usage.
+        
+        Returns:
+            A tracemalloc snapshot or None if not tracking
+        """
+        if self.tracking:
+            return tracemalloc.take_snapshot()
+        return None
+        
+    def compare_snapshots(self, snapshot1, snapshot2):
+        """
+        Compare two memory snapshots.
+        
+        Args:
+            snapshot1: First snapshot
+            snapshot2: Second snapshot
             
-        return snapshot
-        
-    def get_usage(self):
-        """Get the current memory usage in bytes"""
-        if not tracemalloc.is_tracing():
-            return 0
-            
-        snapshot = tracemalloc.take_snapshot()
-        return sum(stat.size for stat in snapshot.statistics('filename'))
-        
-    @property
-    def peak_usage_mb(self):
-        """Get the peak memory usage in megabytes"""
-        return self.peak_usage / (1024 * 1024)
-        
-    def print_stats(self, limit=10):
-        """Print memory usage statistics"""
-        if self.peak_snapshot is None:
-            print("No memory statistics available")
-            return
-            
-        print(f"{'=' * 40}")
-        if self.name:
-            print(f"Memory Profile: {self.name}")
-        print(f"Peak memory usage: {self.peak_usage_mb:.2f} MB")
-        print(f"{'=' * 40}")
-        
-        if self.start_snapshot:
-            print("\nTop memory consumers (compared to start):")
-            top_stats = self.peak_snapshot.compare_to(self.start_snapshot, 'lineno')
-            for stat in top_stats[:limit]:
-                print(f"{stat.size_diff / 1024:.1f} KB: {stat.traceback.format()[0]}")
-        
-        print("\nTop memory consumers (total):")
-        top_stats = self.peak_snapshot.statistics('lineno')
-        for stat in top_stats[:limit]:
-            print(f"{stat.size / 1024:.1f} KB: {stat.traceback.format()[0]}")
-            
-    def __enter__(self):
-        """Context manager entry"""
-        self.start()
-        return self
-        
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit"""
-        self.stop()
-        
-    def __str__(self):
-        """String representation"""
-        if self.name:
-            return f"{self.name}: {self.peak_usage_mb:.2f} MB"
-        else:
-            return f"{self.peak_usage_mb:.2f} MB"
-
-
-def profile_memory(func=None, *, name=None, print_stats=True):
-    """
-    Decorator to profile a function's memory usage.
+        Returns:
+            A list of statistics comparing the two snapshots
+        """
+        if snapshot1 and snapshot2:
+            stats = snapshot2.compare_to(snapshot1, 'lineno')
+            return stats
+        return None
     
-    Args:
-        func: The function to profile
-        name: Optional name for the profiler
-        print_stats: Whether to print statistics after execution
+    def display_top(self, snapshot, key_type='lineno', limit=10):
+        """
+        Display the top memory users.
         
-    Returns:
-        Decorated function
-        
-    Example:
-        @profile_memory
-        def solve_puzzle():
-            # Puzzle solving code
+        Args:
+            snapshot: Memory snapshot to analyze
+            key_type: Type of grouping ('lineno', 'traceback', etc.)
+            limit: Number of top entries to display
             
-        @profile_memory(name="A* Search", print_stats=True)
-        def astar_search():
-            # A* search code
-    """
-    def decorator(fn):
-        @functools.wraps(fn)
-        def wrapper(*args, **kwargs):
-            profiler_name = name or fn.__name__
-            with MemoryProfiler(profiler_name) as profiler:
-                # Take snapshots periodically during execution
-                result = fn(*args, **kwargs)
-                # Take a final snapshot
-                profiler.snapshot()
-                
-            if print_stats:
-                profiler.print_stats()
-                
-            return result, profiler.peak_usage_mb
-        return wrapper
+        Returns:
+            A string containing the top memory users
+        """
+        if not snapshot:
+            return "No snapshot available"
+            
+        top_stats = snapshot.statistics(key_type)
         
-    if func is None:
-        return decorator
-    else:
-        return decorator(func)
-
-
-@contextmanager
-def profiled_block(name=None, print_stats=True):
-    """
-    Context manager for profiling a block of code.
-    
-    Args:
-        name: Optional name for the profiler
-        print_stats: Whether to print statistics after execution
-        
-    Example:
-        with profiled_block("Puzzle Generation"):
-            puzzle = generate_puzzle()
-    """
-    profiler = MemoryProfiler(name)
-    profiler.start()
-    try:
-        yield profiler
-    finally:
-        profiler.stop()
-        if print_stats:
-            profiler.print_stats()
+        result = []
+        result.append("Top memory users:")
+        for index, stat in enumerate(top_stats[:limit], 1):
+            frame = stat.traceback[0]
+            filename = os.path.basename(frame.filename)
+            line = linecache.getline(frame.filename, frame.lineno).strip()
+            size_kb = stat.size / 1024
+            result.append(f"#{index}: {filename}:{frame.lineno}: {size_kb:.1f} KB - {line}")
+            
+        return "\n".join(result)

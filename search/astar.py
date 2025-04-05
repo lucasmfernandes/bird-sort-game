@@ -1,3 +1,7 @@
+"""
+A* and Weighted A* Search Algorithms
+"""
+
 import heapq
 from search.heuristics import admissible_bird_sort_heuristic, weighted_bird_sort_heuristic
 

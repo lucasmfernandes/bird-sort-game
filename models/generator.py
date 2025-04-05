@@ -1,3 +1,7 @@
+"""
+Random Game Generator
+"""
+
 import random
 from models.state import BirdSortState
 

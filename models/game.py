@@ -1,3 +1,7 @@
+"""
+Bird Sort Game Logic
+"""
+
 from models.state import BirdSortState
 from models.generator import create_random_initial_state
 

@@ -1,3 +1,7 @@
+"""
+Heuristic Functions for Bird Sort
+"""
+
 def admissible_bird_sort_heuristic(state):
     """
     An admissible heuristic for A* search that never overestimates the cost.
