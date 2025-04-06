@@ -1,0 +1,2 @@
+2025-04-06 12:20:51 - game_events - INFO - Game started with 7 branches and 5 colors
+2025-04-06 12:20:51 - game_events - INFO - Initial state: Branch 1: [3, 6, 4] | Branch 2: [3, 3, 5] | Branch 3: [6, 1, 5, 2] | Branch 4: [2, 1, 6, 2] | Branch 5: [1, 5, 4, 6] | Branch 6: [2, 1, 4, 4] | Branch 7: [3, 5] | 

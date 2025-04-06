@@ -47,7 +47,3 @@ python main.py
 - `search/`: Search algorithms for the auto-solver
 - `ui/`: User interface implementations
 - `utils/`: Utility functions
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.

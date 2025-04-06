@@ -5,7 +5,7 @@ Random Game Generator
 import random
 from models.state import BirdSortState
 
-def create_random_initial_state(num_branches=7, num_colors=5):
+def create_random_initial_state(num_branches, num_colors):
     """
     Create a random initial state for the Bird Sort game.
     

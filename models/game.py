@@ -9,7 +9,7 @@ class BirdSortGame:
     """
     Manages the game state and rules for Bird Sort.
     """
-    def __init__(self, num_branches=7, num_colors=5, initial_state=None):
+    def __init__(self, num_branches, num_colors, initial_state=None):
         """
         Initialize a new game.
         
